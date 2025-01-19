@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSmith</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.css">
+    <script src="https://cdn.jsdelivr.net/npm/tracekit@0.4.6/tracekit.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        @font-face {
+        font-family: 'InterB';
+        src: url('InterB.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+    }
+    @font-face {
+        font-family: 'Inter';
+        src: url('Inter.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+    }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: black;
+            color: #fff;
+            font-size: 10px;
+            padding: 2px;
+            overflow: hidden;
+        }
+
+        .container {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        max-width: 100vw;
+        height: calc(100vh - 115px);
+        margin: 0 auto;
+    }
+
+    .top-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    height: 35vh;
+    gap: 5px;
+}
+
+.editor-container, .output-container {
+    background-color: #111111;
+    padding: 5px;
+    overflow: hidden;
+    border: 0.2px solid #1E1E1E;
+    
+}
+        .output-container {
+            height: 100%;
+        }
+        .editor-container {
+    background-color: #111111;
+    padding: 5px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 5px;
+}
+    #html-editor, #css-editor, #js-editor {
+        border-radius: 10px;
+        border-color: #1E1E1E;
+        border-width: 10px;
+    }
+
+        h2 {
+            margin-bottom: 5px;
+            color: #ddd;
+        }
+
+        .CodeMirror {
+        flex: 1;
+        height: auto !important;
+        background-color: #111111 ;
+        color: #fff;
+        border-radius: 0;
+    }
+
+        .CodeMirror-gutters {
+            background-color: #111111;
+            border-right: 1px solid #333;
+        }
+        .CodeMirror-cursor {
+        border-left: 2px solid #fff !important;
+    }
+
+        .CodeMirror-linenumber {
+            color: #666;
+        }
+
+        #output {
+            background-color: #111111;
+            padding: 0px;
+            height: 100%;
+            width: 100%;
+            border-radius: 0;
+            border: none;
+        }
+
+        .project-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background-color: #111111;
+    padding: 0 15px;
+    height: 65px;
+    position: relative;
+    border-radius: 3px;
+}
+.logo {
+    display: flex;
+    align-items: center;
+    height: 70px;
+    width: 70px;
+    position: relative;
+}
+
+.logo-img {
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+}
+.line-overlay {
+    position: absolute;
+    top: -120px;
+    left: 1000px;
+    height: 400px;
+    width: 800px;
+    z-index: 1;
+    pointer-events: none;
+}
+.project-name {
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    background: transparent;
+    outline: none;
+}
+
+    .header-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.site-title {
+    color: #ffffff;
+    font-size: 18px;
+    margin-bottom: 3px;
+    font-weight: normal;
+    font-family: "InterB", sans-serif;
+}
+
+
+.edit-icon {
+    cursor: pointer;
+    color: #666;
+    font-size: 16px;
+    transition: color 0.3s;
+    margin-left: auto;
+}
+
+        .edit-icon:hover {
+            color: #fff;
+        }
+        .save-button {
+    padding: 5px 15px;
+    background: #333;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    z-index: 2;
+    transition: background 0.3s;
+    margin-left: 10px;
+}
+        .save-button:hover {
+            background: #444;
+        }
+        .CodeMirror-hints {
+        position: absolute;
+        z-index: 10;
+        overflow: hidden;
+        list-style: none;
+        margin: 0;
+        padding: 2px;
+        border-radius: 3px;
+        max-height: 20em;
+        overflow-y: auto;
+        background-color: #2a2a2a;
+        border: 1px solid #444;
+        font-size: 14px;
+        font-family: monospace;
+        max-width: 400px;
+    }
+
+    .CodeMirror-hint {
+        margin: 0;
+        padding: 4px 6px;
+        white-space: pre;
+        color: #fff;
+        cursor: pointer;
+    }
+
+    li.CodeMirror-hint-active {
+        background-color: #444;
+        color: #fff;
+    }
+
+    .CodeMirror-hint-match {
+        color: #7cc5f3;
+        font-weight: bold;
+    }
+    .debug-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #1e1e1e;
+    border-top: 1px solid #333;
+    color: #fff;
+    font-family: monospace;
+    z-index: 1000;
+    height: 30px;
+    overflow: hidden;
+    transition: height 0.3s;
+}
+
+.debug-panel.expanded {
+    height: 200px;
+}
+
+.debug-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 10px;
+    background: #252525;
+    cursor: pointer;
+}
+
+.debug-content {
+    padding: 10px;
+    height: calc(100% - 30px);
+    overflow-y: auto;
+}
+
+.error-message {
+    color: #ff5555;
+    margin: 5px 0;
+}
+
+.log-message {
+    color: #8bc34a;
+    margin: 5px 0;
+}
+
+.debug-toggle {
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+}
+.info-message {
+    color: #64b5f6;
+    margin: 5px 0;
+}
+
+.warn-message {
+    color: #ffb74d;
+    margin: 5px 0;
+}
+
+.debug-message {
+    color: #9575cd;
+    margin: 5px 0;
+}
+.debug-entry {
+        padding: 8px;
+        border-bottom: 1px solid #333;
+        font-family: monospace;
+    }
+
+    .debug-entry.error {
+        background-color: rgba(255, 0, 0, 0.1);
+    }
+
+    .debug-entry .timestamp {
+        color: #888;
+        margin-right: 10px;
+    }
+
+    .debug-entry .message {
+        color: #fff;
+        font-weight: bold;
+    }
+
+    .debug-entry .stack {
+        margin-top: 5px;
+        color: #888;
+        font-size: 12px;
+        white-space: pre-wrap;
+    }
+
+    .debug-entry.error .message {
+        color: #ff5555;
+    }
+
+.error-entry {
+    background: rgba(255, 0, 0, 0.1);
+    margin: 5px 0;
+    padding: 10px;
+    border-left: 3px solid #ff5555;
+    font-family: monospace;
+}
+
+.error-header {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.error-time {
+    color: #888;
+}
+
+.error-type {
+    color: #ff5555;
+    font-weight: bold;
+}
+
+.error-message {
+    color: #ff5555;
+    margin: 5px 0;
+}
+
+.error-location {
+    color: #888;
+    font-size: 12px;
+}
+
+.error-stack {
+    margin-top: 5px;
+    color: #666;
+    font-size: 12px;
+    white-space: pre-wrap;
+    background: rgba(0,0,0,0.2);
+    padding: 5px;
+}
+
+.debug-panel.expanded {
+    height: 200px !important;
+}
+    </style>
+</head>
+<body>
+    <div class="debug-panel">
+        <div class="debug-header">
+            <h3>Console</h3>
+            <button class="debug-toggle">▼</button>
+        </div>
+        <div class="debug-content"></div>
+    </div>
+    <div class="project-header">
+        <div class="logo">
+            <img src="Logo.png" alt="WebSmith Logo" class="logo-img">
+            <img src="line.svg" class="line-overlay">
+        </div>
+        <div class="header-titles">
+            <span class="site-title">WebSmith</span>
+            <span class="project-name" contenteditable="false">New Project</span>
+        </div>
+        <span class="edit-icon">✎</span>
+        <button class="save-button">Save Files</button>
+    </div>
+    <div class="container">
+       
+        <div class="top-row">
+            <div class="editor-container">
+                <h2>HTML</h2>
+                <textarea id="html-editor"></textarea>
+            </div>
+            <div class="editor-container">
+                <h2>CSS</h2>
+                <textarea id="css-editor"></textarea>
+            </div>
+            <div class="editor-container">
+                <h2>JavaScript</h2>
+                <textarea id="js-editor"></textarea>
+            </div>
+        </div>
+        <div class="output-container">
+            <iframe id="output" sandbox="allow-scripts allow-same-origin"></iframe>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/xml-hint.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/html-hint.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/css-hint.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/javascript-hint.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closetags.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs/loader.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/error-stack-parser/2.1.4/error-stack-parser.min.js"></script>
+    
+    <script>
+        let htmlEditor, cssEditor, jsEditor;
+        const saveButton = document.querySelector('.save-button');
+
+        window.onload = function() {
+            
+        htmlEditor = CodeMirror.fromTextArea(document.getElementById("html-editor"), {
+            mode: "text/html",
+            theme: "material-darker",
+            lineNumbers: true,
+            autoCloseTags: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            styleActiveLine: true,
+            extraKeys: {"Ctrl-Space": "autocomplete"},
+            hintOptions: {
+                completeSingle: false,
+                html: true 
+            }
+        });
+
+        cssEditor = CodeMirror.fromTextArea(document.getElementById("css-editor"), {
+            mode: "css",
+            theme: "material-darker",
+            lineNumbers: true,
+            autoCloseBrackets: true,
+            matchBrackets: true,
+            styleActiveLine: true,
+            extraKeys: {"Ctrl-Space": "autocomplete"},
+                hintOptions: {
+                    completeSingle: false
+                }
+        });
+
+        jsEditor = CodeMirror.fromTextArea(document.getElementById("js-editor"), {
+            mode: "javascript",
+            theme: "material-darker",
+            lineNumbers: true,
+            autoCloseBrackets: true,
+            matchBrackets: true,
+            styleActiveLine: true
+        });
+        htmlEditor.on("inputRead", function(cm, change) {
+                if (change.origin !== "setValue") {
+                    CodeMirror.commands.autocomplete(cm, null, {completeSingle: false});
+                }
+            });
+
+            cssEditor.on("inputRead", function(cm, change) {
+                if (change.origin !== "setValue") {
+                    CodeMirror.commands.autocomplete(cm, null, {completeSingle: false});
+                }
+            });
+
+            jsEditor.on("inputRead", function(cm, change) {
+                if (change.origin !== "setValue") {
+                    CodeMirror.commands.autocomplete(cm, null, {completeSingle: false});
+                }
+            });
+            setupDebugger();
+            htmlEditor.on("change", runCode);
+            cssEditor.on("change", runCode);
+            jsEditor.on("change", runCode);
+        };
+
+        function runCode() {
+    const output = document.getElementById("output");
+    try {
+        const htmlCode = htmlEditor.getValue();
+        const cssCode = `<style>${cssEditor.getValue()}</style>`;
+        const jsCode = `
+    <script src="https://cdn.jsdelivr.net/npm/tracekit@0.4.6/tracekit.min.js"><\/script>
+    <script>
+        TraceKit.report.subscribe(function(errorReport) {
+            window.parent.postMessage({
+                type: 'error',
+                message: errorReport.message,
+                stack: errorReport.stack
+            }, '*');
+        });
+        
+        window.onerror = function(msg, url, line, col, error) {
+            TraceKit.report(error);
+            return false;
+        };
+
+        window.addEventListener('unhandledrejection', function(event) {
+            TraceKit.report(event.reason);
+        });
+
+        ${jsEditor.getValue()}
+    <\/script>
+`;
+        output.srcdoc = htmlCode + cssCode + jsCode;
+    } catch (error) {
+        console.error(error.message);
+    }
+}
+
+        const projectName = document.querySelector('.project-name');
+    const editIcon = document.querySelector('.edit-icon');
+
+    editIcon.addEventListener('click', () => {
+        projectName.contentEditable = projectName.contentEditable === 'true' ? 'false' : 'true';
+        if (projectName.contentEditable === 'true') {
+            projectName.focus();
+            document.execCommand('selectAll', false, null);
+        }
+    });
+
+    projectName.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            projectName.contentEditable = 'false';
+        }
+    });
+
+    projectName.addEventListener('blur', () => {
+        projectName.contentEditable = 'false';
+    });
+    saveButton.addEventListener('click', () => {
+        const htmlContent = htmlEditor.getValue();
+        const cssContent = cssEditor.getValue();
+        const jsContent = jsEditor.getValue();
+        const htmlBlob = new Blob([htmlContent], {type: 'text/html;charset=utf-8'});
+        const cssBlob = new Blob([cssContent], {type: 'text/css;charset=utf-8'});
+        const jsBlob = new Blob([jsContent], {type: 'text/javascript;charset=utf-8'});
+
+        saveAs(htmlBlob, 'index.html');
+        saveAs(cssBlob, 'styles.css');
+        saveAs(jsBlob, 'script.js');
+    });
+
+function setupDebugger() {
+    const debugPanel = document.querySelector('.debug-panel');
+    const debugContent = document.querySelector('.debug-content');
+    const debugToggle = document.querySelector('.debug-toggle');
+    window.onerror = function(msg, url, lineNo, columnNo, error) {
+        const errorLog = {
+            message: msg,
+            line: lineNo,
+            column: columnNo,
+            stack: error && error.stack,
+            timestamp: new Date()
+        };
+        showError(errorLog);
+        return false;
+    };
+    function showError(error) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-entry';
+        
+        const timestamp = new Date().toLocaleTimeString();
+        errorDiv.innerHTML = `
+            <div class="error-header">
+                <span class="error-time">[${timestamp}]</span>
+                <span class="error-type">Error</span>
+            </div>
+            <div class="error-message">${error.message}</div>
+            ${error.line ? `<div class="error-location">at line ${error.line}:${error.column}</div>` : ''}
+            ${error.stack ? `<pre class="error-stack">${error.stack}</pre>` : ''}
+        `;
+        
+        debugContent.appendChild(errorDiv);
+        debugContent.scrollTop = debugContent.scrollHeight;
+        debugPanel.classList.add('expanded');
+    }
+    const iframe = document.getElementById('output');
+    iframe.addEventListener('load', () => {
+        iframe.contentWindow.onerror = (msg, url, lineNo, columnNo, error) => {
+            showError({
+                message: msg,
+                line: lineNo,
+                column: columnNo,
+                stack: error && error.stack,
+                timestamp: new Date()
+            });
+            return false;
+        };
+    });
+    jsEditor.on('change', () => {
+        try {
+            const code = jsEditor.getValue();
+            new Function(code);
+        } catch (e) {
+            showError({
+                message: e.message,
+                stack: e.stack,
+                timestamp: new Date()
+            });
+        }
+    });
+    debugToggle.addEventListener('click', () => {
+        debugPanel.classList.toggle('expanded');
+        debugToggle.textContent = debugPanel.classList.contains('expanded') ? '▲' : '▼';
+    });
+}
+    </script>
+</body>
+</html>
